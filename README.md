@@ -100,8 +100,10 @@ All 141 pass on each of these:
 | Ubuntu 24.04 | bash 5.2, GNU core utilities, mawk | 141 / 141 |
 | Alpine 3.20 | bash 5.2, BusyBox | 141 / 141 |
 
-The same script runs on GitHub's Ubuntu and macOS machines on every push; the badge at the
-top shows the latest result. The hook adds 2 to 8 milliseconds to a Bash call.
+The same script runs on GitHub's machines on every push, on Ubuntu 26.04, Ubuntu 24.04
+and Alpine; the badge at the top shows the latest result. macOS is run on a Mac by hand,
+because GitHub's macOS machines were too busy to pick the job up. The hook adds 2 to 8
+milliseconds to a Bash call.
 
 Running on more than one system paid for itself twice. On Alpine, BusyBox `ps` made every
 live lock look dead. On Ubuntu 26.04, the new `mkdir` told several racing callers that

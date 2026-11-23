@@ -4,18 +4,39 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  scripts:
+  linux:
     name: script tests (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # ubuntu-latest ships the Rust core utilities (uutils); 24.04 ships GNU's.
+        os: [ubuntu-latest, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the lock, verify and hook tests
+        run: bash tests/run.sh
+
+  alpine:
+    name: script tests (alpine, busybox)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the tests in an Alpine container
+        run: docker run --rm -v "$PWD":/kit:ro alpine:3.20 sh -c 'apk add -q bash jq perl python3 && bash /kit/tests/run.sh'
+
+  # GitHub's macOS machines are often too busy to pick a job up, which would turn the
+  # badge red for no fault of the code. Run this one by hand from the Actions tab.
+  macos:
+    name: script tests (macos-latest)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Run the lock, verify and hook tests
