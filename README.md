@@ -36,21 +36,12 @@ you can run yourself.
 
 ## How one slice flows
 
-```mermaid
-flowchart LR
-  F["docs/FEATURES.md<br/>next unticked line"] --> A["architect<br/>feature list, data, permissions,<br/>file plan"]
-  A --> B["feature-builder<br/>schema → migration → permissions<br/>→ reads and writes → tests"]
-  B --> U["ui-designer<br/>new or changed screens,<br/>every state"]
-  U --> R["reviewer<br/>leaks, integrity,<br/>missing features"]
-  R -- findings --> B
-  R --> V["steelthread-verify<br/>lint, full unit suite,<br/>migrations on a fresh database"]
-  V -- fails --> B
-  V -- passes --> T["tick the box,<br/>log decisions, commit"]
-  T --> F
-```
+<p align="center">
+  <img src="assets/flow.svg" alt="How one slice flows: the next unticked line in docs/FEATURES.md goes to the architect (plan), the feature-builder (build), the ui-designer (screens) and the reviewer (review). Findings go back to the builder. Then steelthread-verify runs lint, the full unit suite and the migrations on a fresh database; a failure goes back to the builder. Only a passing report ticks the box and commits." width="100%">
+</p>
 
 No agent ticks the box. The session runs the one full check after the review, and only a
-passing report ticks the line.
+passing report ticks the line. Findings and failed checks go back to the builder.
 
 ## Quick start
 

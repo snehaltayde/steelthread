@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 372" width="1280" height="372" role="img" aria-labelledby="t d">
+  <title id="t">How one slice flows</title>
+  <desc id="d">The next unticked line in docs/FEATURES.md goes to the architect, who plans it. The feature-builder builds it, the ui-designer does any screens, and the reviewer reviews the result. Findings go back to the builder. Then steelthread-verify runs lint, the full unit suite and the migrations on a fresh database. A failure goes back to the builder. Only a passing report ticks the box and commits, and the next line starts.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1016"/>
+      <stop offset="1" stop-color="#121c27"/>
+    </linearGradient>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1 L9 5 L1 9 z" fill="#7fb8e6"/>
+    </marker>
+    <marker id="b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1 L9 5 L1 9 z" fill="#f2b441"/>
+    </marker>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+      .box { fill: #16212d; stroke: #2b4057; stroke-width: 1.5; }
+      .name { fill: #eaf5ff; font-size: 17px; font-weight: 600; }
+      .what { fill: #8fa3b8; font-size: 13.5px; }
+      .num { fill: #7fb8e6; font-size: 12px; letter-spacing: 1.5px; }
+      .go { stroke: #7fb8e6; stroke-width: 2; fill: none; }
+      .back { stroke: #f2b441; stroke-width: 2; fill: none; stroke-dasharray: 5 6; }
+      .backlabel { fill: #f2b441; font-size: 13px; }
+      .golabel { fill: #7fb8e6; font-size: 13px; }
+    </style>
+  </defs>
+
+  <rect x="1" y="1" width="1278" height="370" rx="18" fill="url(#bg)" stroke="#24364a" stroke-width="2"/>
+
+  <!-- start -->
+  <text x="48" y="60" class="mono golabel">docs/FEATURES.md: the next unticked line</text>
+  <path class="go" d="M132 72 L132 122" marker-end="url(#a)"/>
+
+  <!-- six steps -->
+  <g>
+    <rect class="box" x="40"   y="130" width="184" height="118" rx="12"/>
+    <rect class="box" x="243"  y="130" width="184" height="118" rx="12"/>
+    <rect class="box" x="446"  y="130" width="184" height="118" rx="12"/>
+    <rect class="box" x="649"  y="130" width="184" height="118" rx="12"/>
+    <rect class="box" x="852"  y="130" width="184" height="118" rx="12" style="stroke: #7fb8e6"/>
+    <rect class="box" x="1055" y="130" width="184" height="118" rx="12" style="stroke: #2ea043"/>
+  </g>
+  <g class="mono num">
+    <text x="58" y="158">1  PLAN</text>
+    <text x="261" y="158">2  BUILD</text>
+    <text x="464" y="158">3  DESIGN</text>
+    <text x="667" y="158">4  REVIEW</text>
+    <text x="870" y="158">5  VERIFY</text>
+    <text x="1073" y="158" style="fill: #3fb950">6  DONE</text>
+  </g>
+  <g class="mono name">
+    <text x="58" y="186">architect</text>
+    <text x="261" y="186">feature-builder</text>
+    <text x="464" y="186">ui-designer</text>
+    <text x="667" y="186">reviewer</text>
+    <text x="870" y="186" style="font-size: 14.5px">steelthread-verify</text>
+    <text x="1073" y="186" class="sans">Tick the box</text>
+  </g>
+  <g class="sans what">
+    <text x="58" y="210">Features, data,</text>
+    <text x="58" y="229">permissions, file plan</text>
+    <text x="261" y="210">Schema to tests,</text>
+    <text x="261" y="229">in a fixed order</text>
+    <text x="464" y="210">New or changed</text>
+    <text x="464" y="229">screens, every state</text>
+    <text x="667" y="210">Leaks, integrity,</text>
+    <text x="667" y="229">missing features</text>
+    <text x="870" y="210">Lint, full unit suite,</text>
+    <text x="870" y="229">fresh-database migration</text>
+    <text x="1073" y="210">Log decisions,</text>
+    <text x="1073" y="229">commit, next line</text>
+  </g>
+
+  <!-- forward arrows -->
+  <g class="go">
+    <path d="M224 189 L239 189" marker-end="url(#a)"/>
+    <path d="M427 189 L442 189" marker-end="url(#a)"/>
+    <path d="M630 189 L645 189" marker-end="url(#a)"/>
+    <path d="M833 189 L848 189" marker-end="url(#a)"/>
+    <path d="M1036 189 L1051 189" marker-end="url(#a)"/>
+  </g>
+  <text x="1043" y="120" class="sans golabel" text-anchor="middle">passes</text>
+
+  <!-- back to the builder -->
+  <path class="back" d="M741 248 L741 292 L365 292 L365 254" marker-end="url(#b)"/>
+  <text x="553" y="284" class="sans backlabel" text-anchor="middle">findings: fix, then recheck</text>
+  <path class="back" d="M944 248 L944 336 L305 336 L305 254" marker-end="url(#b)"/>
+  <text x="625" y="328" class="sans backlabel" text-anchor="middle">a check fails: fix and run again</text>
+
+</svg>
