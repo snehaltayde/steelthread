@@ -96,11 +96,18 @@ All 141 pass on each of these:
 | System | Shell and awk | Result |
 |---|---|---|
 | macOS 26 (Apple silicon) | bash 3.2, BSD awk | 141 / 141 |
-| Ubuntu 24.04 | bash 5.2, mawk | 141 / 141 |
-| Alpine 3.20 | bash 5.2, BusyBox awk and ps | 141 / 141 |
+| Ubuntu 26.04 | bash 5.3, the Rust core utilities (uutils) | 141 / 141 |
+| Ubuntu 24.04 | bash 5.2, GNU core utilities, mawk | 141 / 141 |
+| Alpine 3.20 | bash 5.2, BusyBox | 141 / 141 |
 
 The same script runs on GitHub's Ubuntu and macOS machines on every push; the badge at the
 top shows the latest result. The hook adds 2 to 8 milliseconds to a Bash call.
+
+Running on more than one system paid for itself twice. On Alpine, BusyBox `ps` made every
+live lock look dead. On Ubuntu 26.04, the new `mkdir` told several racing callers that
+each had created the same directory, so a `mkdir` lock let commands overlap. Both are
+fixed, and the race test is what caught the second one. The reasons are in
+[docs/DECISIONS.md](docs/DECISIONS.md).
 
 ### 2. Live smoke test: does the plugin load in a real session?
 
@@ -130,7 +137,7 @@ tests name all three roles, and the project's tests pass when the script runs th
 
 Our run:
 
-| | |
+| Measure | Our run |
 |---|---|
 | Outside checks | **20 of 20 passed** |
 | Tests the session wrote for the slice | **42, all passing** when the script ran them itself |

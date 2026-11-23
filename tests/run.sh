@@ -40,15 +40,15 @@ ok "stdin passes through" "$(echo piped | "$L" cat)" "piped"
 "$L" bash -c "echo A-start >> '$T/order.txt'; sleep 3; echo A-end >> '$T/order.txt'" & p1=$!; sleep 1
 "$L" bash -c "echo B-start >> '$T/order.txt'; echo B-end >> '$T/order.txt'" 2>/dev/null & p2=$!; wait $p1 $p2
 ok "serializes" "$(tr '\n' ' ' < "$T/order.txt")" "A-start A-end B-start B-end "
-mkdir "$LK"; echo 999999 > "$LK/pid"
+echo 999999 > "$LK"
 ok "stale lock taken over" "$("$L" -t 10 echo took-over 2>/dev/null)" "took-over"
 # A live holder owned by someone else (pid 1) must not be stolen.
-mkdir "$LK"; echo 1 > "$LK/pid"
+echo 1 > "$LK"
 "$L" -t 2 echo nope >/dev/null 2>&1; ok "pid 1 holder not stolen, times out" "$?" "75"
-[ -d "$LK" ]; ok "pid 1 lock still there" "$?" "0"
+[ -f "$LK" ]; ok "pid 1 lock still there" "$?" "0"
 rm -rf "$LK"
 # STEELTHREAD_LOCK_HELD inherited from an unrelated holder must not skip the lock.
-mkdir "$LK"; echo $$ > "$LK/pid"
+echo $$ > "$LK"
 STEELTHREAD_LOCK_HELD=424242 "$L" -t 2 echo nope >/dev/null 2>&1; ok "stale HELD env does not bypass" "$?" "75"
 rm -rf "$LK"
 # A missing lock directory fails at once with 73.
@@ -70,17 +70,17 @@ kill -TERM $vp; wait $vp 2>/dev/null; sleep 1
 kill -0 "$(cat "$T/step.pid")" 2>/dev/null; ok "TERM through verify stops the step" "$?" "1"
 [ -e "$T/step.done" ]; ok "stopped step did not finish" "$?" "1"
 [ -e "$LK" ]; ok "lock released after TERM through verify" "$?" "1"
-# A regular file at the lock path.
-: > "$LK"; "$L" -t 5 echo x >/dev/null 2>&1; ok "file at lock path exits 73" "$?" "73"; rm -f "$LK"
+# A directory at the lock path (not a lock file).
+mkdir "$LK"; "$L" -t 5 echo x >/dev/null 2>&1; ok "directory at lock path exits 73" "$?" "73"; rmdir "$LK"
 # --locked typed by hand still takes the lock.
-mkdir "$LK"; echo $$ > "$LK/pid"
+echo $$ > "$LK"
 out=$(env -u STEELTHREAD_LOCK_HELD "$V" --locked --step a true 2>&1 & vp=$!; sleep 2; kill -TERM $vp 2>/dev/null; wait $vp 2>/dev/null; echo "code:$?")
 ok "hand-typed --locked waits for the lock" "$(echo "$out" | grep -c 'waiting for pid')" "1"; rm -rf "$LK"
 
 group "lock: 12 waiters race for a dead lock"
 # 8 rounds, 12 waiters each on a dead holder's lock. Each round must run strictly one at a time.
 for r in 1 2 3 4 5 6 7 8; do
-  rm -rf "$LK" "$LK.takeover"; mkdir "$LK"; echo 999999 > "$LK/pid"; : > "$T/race.txt"
+  rm -rf "$LK" "$LK.takeover"; echo 999999 > "$LK"; : > "$T/race.txt"
   for w in 1 2 3 4 5 6 7 8 9 10 11 12; do
     "$L" -t 60 bash -c "echo s >> '$T/race.txt'; perl -e 'select(undef,undef,undef,0.05)'; echo e >> '$T/race.txt'" 2>/dev/null &
   done; wait
@@ -103,7 +103,7 @@ out=$("$V" --step t "echo first-out; exit 1" --step t "echo second-out; exit 1" 
 ok "duplicate names keep separate logs" "$(echo "$out" | grep -c -e '^first-out$' -e '^second-out$')" "2"
 "$V" >/dev/null 2>&1; ok "no args usage" "$?" "64"
 "$V" --skip only "x" >/dev/null 2>&1; ok "skip-only usage" "$?" "64"
-mkdir "$LK"; echo $$ > "$LK/pid"; t0=$(date +%s); "$V" --bogus >/dev/null 2>&1; c=$?; rm -rf "$LK"
+echo $$ > "$LK"; t0=$(date +%s); "$V" --bogus >/dev/null 2>&1; c=$?; rm -rf "$LK"
 ok "bad arg is usage error without waiting for the lock" "$c:$(( $(date +%s) - t0 < 2 ))" "64:1"
 ok "nested verify works" "$("$V" --step outer "'$V' --step inner true" 2>/dev/null | grep -c '^PASS  *outer')" "1"
 ok "step stdin is closed" "$(echo data | "$V" --step s 'cat; true' 2>/dev/null | grep -c '^PASS')" "1"

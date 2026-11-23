@@ -39,6 +39,8 @@ To run it on Linux from a Mac, with Docker:
 docker run --rm -v "$PWD":/kit:ro ubuntu:24.04 bash -c 'apt-get update -qq && apt-get install -y -qq jq perl python3 procps >/dev/null && bash /kit/tests/run.sh'
 ```
 
+Swap in `ubuntu:26.04` to test against the Rust core utilities.
+
 ```bash
 docker run --rm -v "$PWD":/kit:ro alpine:3.20 sh -c 'apk add -q bash jq perl python3 && bash /kit/tests/run.sh'
 ```
@@ -52,7 +54,8 @@ What the groups cover:
   killed outright, the lock stays held until the command it started has ended.
 - **Lock, the race (8).** Eight rounds. In each, 12 commands start together against a lock
   left by a dead process. Each writes a start mark and an end mark; the round passes only
-  if the marks strictly alternate, which means no two commands ever ran at once.
+  if the marks strictly alternate, which means no two commands ever ran at once. This is
+  the test that caught a `mkdir` that is not exclusive on Ubuntu 26.04.
 - **Verify (16).** All steps run even after one fails. One failure makes the exit code 1
   and the verdict FAILED. A skipped step is listed as NOT RUN and named in the verdict.
   The last lines of a failing step's log are printed. Wrong arguments fail at once instead

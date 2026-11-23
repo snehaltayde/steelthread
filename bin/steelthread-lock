@@ -6,8 +6,8 @@
 #
 # Waits for the lock (default: up to 7200 seconds), runs the command, releases the
 # lock, and exits with the command's exit code.
-# Exit 75: the wait timed out. Exit 73: the lock directory cannot be written.
-# The lock lives in /tmp; set STEELTHREAD_LOCK_DIR to put it somewhere else.
+# Exit 75: the wait timed out. Exit 73: the lock file cannot be created.
+# The lock is a file in /tmp; set STEELTHREAD_LOCK_DIR to put it somewhere else.
 set -u
 
 usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }
@@ -30,6 +30,12 @@ dir="${STEELTHREAD_LOCK_DIR:-/tmp}"
 lock="$dir/steelthread-heavy.lock"
 takeover="$lock.takeover"
 
+# The lock is a file holding the wrapper's pid on line 1 and the command's pid on line 2.
+# create makes a file only if it does not exist, in one step, with bash's own exclusive
+# create. mkdir is not used: on some systems (uutils coreutils 0.10, Ubuntu 26.04) two
+# racing mkdir calls can both report success.
+create() { ( set -o noclobber; echo "$2" > "$1" ) 2>/dev/null; }
+
 # Is this pid running? kill -0 answers for our own processes, /proc and ps for
 # everyone's (kill -0 fails on another user's process; BusyBox ps has no -p).
 alive() {
@@ -38,10 +44,10 @@ alive() {
   [ -d "/proc/$1" ] && return 0
   ps -p "$1" >/dev/null 2>&1
 }
-owner() { cat "$lock/pid" 2>/dev/null || true; }
+owner() { local o=""; { read -r o < "$lock"; } 2>/dev/null; printf '%s' "$o"; }
 # The lock is live while its wrapper or the command it started is still running.
 owner_alive() {
-  for p in $(cat "$lock/pid" "$lock/child" 2>/dev/null); do
+  for p in $(cat "$lock" 2>/dev/null); do
     alive "$p" && return 0
   done
   return 1
@@ -62,7 +68,7 @@ kill_tree() {
     kill -TERM "$p" 2>/dev/null
   done
 }
-remove_lock() { rm -f "$lock/pid" "$lock/child"; rmdir "$lock" 2>/dev/null; }
+remove_lock() { rm -f "$lock"; }
 
 # Already inside the lock (a command run under it calls steelthread-lock again):
 # run directly instead of waiting on ourselves.
@@ -73,8 +79,8 @@ fi
 # Remove a lock whose owner has died. Only one waiter at a time may do this, and it
 # looks again once it is alone, so a lock that was just re-taken is never removed.
 clear_stale() {
-  if ! mkdir "$takeover" 2>/dev/null; then
-    older_than_a_minute "$takeover" && rmdir "$takeover" 2>/dev/null
+  if ! create "$takeover" "$$"; then
+    older_than_a_minute "$takeover" && rm -f "$takeover"
     return
   fi
   if [ "$(owner)" = "$1" ]; then
@@ -84,14 +90,14 @@ clear_stale() {
       remove_lock
     fi
   fi
-  rmdir "$takeover" 2>/dev/null
+  rm -f "$takeover"
 }
 
 start=$(date +%s)
 announced=0
-while ! mkdir "$lock" 2>/dev/null; do
+while ! create "$lock" "$$"; do
   seen=""
-  if [ -d "$lock" ]; then
+  if [ -f "$lock" ]; then
     seen=$(owner)
     if [ -n "$seen" ]; then
       owner_alive || clear_stale "$seen"
@@ -100,7 +106,7 @@ while ! mkdir "$lock" 2>/dev/null; do
       clear_stale ""
     fi
   elif [ -e "$lock" ]; then
-    echo "steelthread-lock: $lock exists and is not a lock directory. Remove it." >&2
+    echo "steelthread-lock: $lock exists and is not a lock file. Remove it." >&2
     exit 73
   elif [ ! -d "$dir" ] || [ ! -w "$dir" ]; then
     echo "steelthread-lock: cannot create the lock in $dir (missing or not writable). Set STEELTHREAD_LOCK_DIR to a directory every session can write." >&2
@@ -118,7 +124,6 @@ while ! mkdir "$lock" 2>/dev/null; do
   sleep 1
 done
 
-echo $$ > "$lock/pid"
 release() { [ "$(owner)" = "$$" ] && remove_lock; }
 trap release EXIT
 
@@ -133,7 +138,7 @@ trap 'pass_on 130' INT
 
 STEELTHREAD_LOCK_HELD=$$ "$@" <&0 &
 child=$!
-echo "$child" > "$lock/child"
+echo "$child" >> "$lock"
 
 wait "$child"
 status=$?

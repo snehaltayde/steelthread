@@ -12,6 +12,19 @@ Choices made while turning the kit into a plugin. Newest first.
   instead of claiming an improvement.
 - **Decided by:** on the owner's behalf.
 
+## 2026-11-24 The lock is a file made with bash's exclusive create
+
+- **Decision:** `steelthread-lock` takes the lock with `set -o noclobber; echo $$ > file`.
+  The file holds the wrapper's pid and the command's pid. A lock whose two processes
+  have both died is taken over, one waiter at a time.
+- **Why:** the first CI run on GitHub's Ubuntu 26.04 failed all 8 race rounds. That
+  system's `mkdir` (uutils coreutils 0.10) reported success to more than one of 12
+  racing callers in 77 of 200 trials, so a directory lock let commands overlap. Bash's
+  own exclusive create had exactly one winner in 200 of 200 trials there and on macOS,
+  and needs no outside program.
+- **Instead of:** `mkdir` (not exclusive there), `flock` (Linux only), `lockf` (macOS only).
+- **Decided by:** on the owner's behalf.
+
 ## 2026-11-24 Liveness is checked three ways
 
 - **Decision:** `steelthread-lock` treats a pid as alive if `kill -0` succeeds, or
@@ -62,12 +75,11 @@ Choices made while turning the kit into a plugin. Newest first.
   `steelthread-verify` and `steelthread-lock` instead of a hook that would guess.
 - **Decided by:** on the owner's behalf.
 
-## 2026-11-23 The lock is a directory, not `lockf` or `flock`
+## 2026-11-23 The lock is a directory, not `lockf` or `flock` (replaced 2026-11-24)
 
-- **Decision:** `steelthread-lock` takes a lock by creating `/tmp/steelthread-heavy.lock`.
-- **Why:** `lockf` exists only on macOS and `flock` only on Linux; `mkdir` is atomic on
-  both. A lock whose wrapper and command have both died is taken over, one waiter at a
-  time.
+- **Decision:** `steelthread-lock` took its lock by creating a directory with `mkdir`.
+- **Why:** `lockf` exists only on macOS and `flock` only on Linux.
+- **Replaced by:** "The lock is a file made with bash's exclusive create", above.
 - **Decided by:** on the owner's behalf.
 
 ## 2026-11-23 One full test run per slice, owned by the session

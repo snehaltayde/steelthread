@@ -7,7 +7,7 @@ shape.
 
 ## The run
 
-| | |
+| Measure | This run |
 |---|---|
 | Date | 24 November 2026 |
 | Machine | macOS 26.5, Apple silicon, Node 26.0 |
