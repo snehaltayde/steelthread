@@ -1,0 +1,17 @@
+{
+  "name": "steelthread",
+  "owner": {
+    "name": "Snehal Tayde",
+    "url": "https://github.com/snehaltayde"
+  },
+  "metadata": {
+    "description": "Steelthread: build software with Claude Code one verified slice at a time."
+  },
+  "plugins": [
+    {
+      "name": "steelthread",
+      "source": "./",
+      "description": "Build software with Claude Code one verified slice at a time: plan, build, design, review, verify."
+    }
+  ]
+}

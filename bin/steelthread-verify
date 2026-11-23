@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# steelthread-verify: run a slice's checks one after another under the machine-wide
+# lock and print a report that can be pasted as it is.
+#
+#   steelthread-verify --step NAME "COMMAND" [--step NAME "COMMAND" ...]
+#                      [--skip NAME "REASON" ...]
+#
+# Every --step runs even if an earlier one failed, so the report is complete.
+# --skip records a check that was deliberately not run, so the report says so.
+# Exit 0: every step passed. Exit 1: at least one failed. Exit 64: bad usage.
+# Exit 75 or 73: the lock could not be taken (see steelthread-lock).
+#
+# Example:
+#   steelthread-verify --step lint "npm run lint" --step unit "npm test" \
+#     --step migrate "npm run db:fresh" --skip browser "slice has no screen"
+set -u
+
+usage() { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; }
+
+here=$(cd "$(dirname "$0")" && pwd)
+
+# --locked is internal: it marks the second pass, which runs inside the lock.
+locked=0
+if [ "${1:-}" = "--locked" ]; then
+  [ -n "${STEELTHREAD_LOCK_HELD:-}" ] && locked=1
+  shift
+fi
+args=("$@")
+
+names=(); cmds=(); skip_names=(); skip_reasons=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --step) [ $# -ge 3 ] || { usage >&2; exit 64; }; names+=("$2"); cmds+=("$3"); shift 3 ;;
+    --skip) [ $# -ge 3 ] || { usage >&2; exit 64; }; skip_names+=("$2"); skip_reasons+=("$3"); shift 3 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "steelthread-verify: unknown argument: $1" >&2; usage >&2; exit 64 ;;
+  esac
+done
+[ "${#names[@]}" -gt 0 ] || { usage >&2; exit 64; }
+
+# The arguments are good. Take the machine-wide lock for the whole run.
+if [ "$locked" -eq 0 ]; then
+  exec "$here/steelthread-lock" "$0" --locked "${args[@]}"
+fi
+
+tmp=${TMPDIR:-/tmp}
+logdir=$(mktemp -d "${tmp%/}/steelthread-verify.XXXXXX")
+where=$(pwd)
+rev=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+sha=$(git rev-parse --short HEAD 2>/dev/null || true)
+dirty=""
+[ -n "$(git status --porcelain 2>/dev/null | head -1)" ] && dirty=" +uncommitted"
+
+results=(); times=(); logs=(); failed=0
+i=0
+while [ "$i" -lt "${#names[@]}" ]; do
+  name=${names[$i]}; cmd=${cmds[$i]}
+  log="$logdir/$((i + 1))-$(printf '%s' "$name" | tr -c 'A-Za-z0-9._-' '_').log"
+  echo "steelthread-verify: running $name: $cmd" >&2
+  t0=$(date +%s)
+  bash -c "$cmd" >"$log" 2>&1 </dev/null
+  code=$?
+  times+=("$(( $(date +%s) - t0 ))s")
+  logs+=("$log")
+  if [ "$code" -eq 0 ]; then results+=("PASS"); else results+=("FAIL($code)"); failed=$((failed + 1)); fi
+  i=$((i + 1))
+done
+
+echo
+echo "steelthread verify  $(date '+%Y-%m-%d %H:%M')  $where${rev:+  [$rev${sha:+ $sha}$dirty]}"
+# The step column is as wide as the longest name.
+w=12
+for n in ${names[@]+"${names[@]}"} ${skip_names[@]+"${skip_names[@]}"}; do [ "${#n}" -gt "$w" ] && w=${#n}; done
+printf "%-9s %-${w}s %6s  %s\n" RESULT STEP TIME DETAIL
+i=0
+while [ "$i" -lt "${#names[@]}" ]; do
+  printf "%-9s %-${w}s %6s  %s\n" "${results[$i]}" "${names[$i]}" "${times[$i]}" "${cmds[$i]}"
+  i=$((i + 1))
+done
+i=0
+while [ "$i" -lt "${#skip_names[@]}" ]; do
+  printf "%-9s %-${w}s %6s  %s\n" "NOT RUN" "${skip_names[$i]}" "-" "${skip_reasons[$i]}"
+  i=$((i + 1))
+done
+
+i=0
+while [ "$i" -lt "${#names[@]}" ]; do
+  case "${results[$i]}" in
+    FAIL*) echo; echo "--- ${names[$i]}: last 30 lines of ${logs[$i]} ---"; tail -n 30 "${logs[$i]}" ;;
+  esac
+  i=$((i + 1))
+done
+
+echo
+total=${#names[@]}; skipped=${#skip_names[@]}
+steps="$total steps"; [ "$total" -eq 1 ] && steps="1 step"
+if [ "$failed" -gt 0 ]; then
+  echo "VERDICT: FAILED ($failed of $steps failed, $skipped not run). Logs: $logdir"
+  exit 1
+fi
+if [ "$skipped" -gt 0 ]; then
+  echo "VERDICT: PASSED ($steps), $skipped NOT VERIFIED. Logs: $logdir"
+else
+  echo "VERDICT: PASSED ($steps). Logs: $logdir"
+fi
+exit 0

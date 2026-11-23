@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# steelthread-lock: run one heavy command (test suite, build, migration) at a time
+# on this machine, so parallel sessions and worktrees do not starve each other.
+#
+#   steelthread-lock [-t seconds] [--] command [args...]
+#
+# Waits for the lock (default: up to 7200 seconds), runs the command, releases the
+# lock, and exits with the command's exit code.
+# Exit 75: the wait timed out. Exit 73: the lock directory cannot be written.
+# The lock lives in /tmp; set STEELTHREAD_LOCK_DIR to put it somewhere else.
+set -u
+
+usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }
+
+timeout=7200
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -t) [ $# -ge 2 ] || { usage >&2; exit 64; }; timeout="$2"; shift 2 ;;
+    --) shift; break ;;
+    -h|--help) usage; exit 0 ;;
+    *) break ;;
+  esac
+done
+case "$timeout" in
+  ''|*[!0-9]*) echo "steelthread-lock: -t needs a whole number of seconds" >&2; exit 64 ;;
+esac
+[ $# -gt 0 ] || { usage >&2; exit 64; }
+
+dir="${STEELTHREAD_LOCK_DIR:-/tmp}"
+lock="$dir/steelthread-heavy.lock"
+takeover="$lock.takeover"
+
+# Is this pid running? kill -0 answers for our own processes, /proc and ps for
+# everyone's (kill -0 fails on another user's process; BusyBox ps has no -p).
+alive() {
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  kill -0 "$1" 2>/dev/null && return 0
+  [ -d "/proc/$1" ] && return 0
+  ps -p "$1" >/dev/null 2>&1
+}
+owner() { cat "$lock/pid" 2>/dev/null || true; }
+# The lock is live while its wrapper or the command it started is still running.
+owner_alive() {
+  for p in $(cat "$lock/pid" "$lock/child" 2>/dev/null); do
+    alive "$p" && return 0
+  done
+  return 1
+}
+older_than_a_minute() { [ -n "$(find "$1" -maxdepth 0 -mmin +1 2>/dev/null)" ]; }
+# TERM a process and everything below it, so a test runner's workers stop too.
+kill_tree() {
+  for p in $(ps -A -o pid=,ppid= | awk -v root="$1" '
+      { kids[$2] = kids[$2] " " $1 }
+      END {
+        todo[1] = root; count = 1
+        for (i = 1; i <= count; i++) {
+          m = split(kids[todo[i]], c, " ")
+          for (j = 1; j <= m; j++) todo[++count] = c[j]
+        }
+        for (i = 1; i <= count; i++) print todo[i]
+      }'); do
+    kill -TERM "$p" 2>/dev/null
+  done
+}
+remove_lock() { rm -f "$lock/pid" "$lock/child"; rmdir "$lock" 2>/dev/null; }
+
+# Already inside the lock (a command run under it calls steelthread-lock again):
+# run directly instead of waiting on ourselves.
+if [ -n "${STEELTHREAD_LOCK_HELD:-}" ] && [ "$(owner)" = "$STEELTHREAD_LOCK_HELD" ]; then
+  exec "$@"
+fi
+
+# Remove a lock whose owner has died. Only one waiter at a time may do this, and it
+# looks again once it is alone, so a lock that was just re-taken is never removed.
+clear_stale() {
+  if ! mkdir "$takeover" 2>/dev/null; then
+    older_than_a_minute "$takeover" && rmdir "$takeover" 2>/dev/null
+    return
+  fi
+  if [ "$(owner)" = "$1" ]; then
+    if [ -n "$1" ]; then
+      owner_alive || remove_lock
+    elif older_than_a_minute "$lock"; then
+      remove_lock
+    fi
+  fi
+  rmdir "$takeover" 2>/dev/null
+}
+
+start=$(date +%s)
+announced=0
+while ! mkdir "$lock" 2>/dev/null; do
+  seen=""
+  if [ -d "$lock" ]; then
+    seen=$(owner)
+    if [ -n "$seen" ]; then
+      owner_alive || clear_stale "$seen"
+    elif older_than_a_minute "$lock"; then
+      # No owner recorded for over a minute: abandoned while being taken.
+      clear_stale ""
+    fi
+  elif [ -e "$lock" ]; then
+    echo "steelthread-lock: $lock exists and is not a lock directory. Remove it." >&2
+    exit 73
+  elif [ ! -d "$dir" ] || [ ! -w "$dir" ]; then
+    echo "steelthread-lock: cannot create the lock in $dir (missing or not writable). Set STEELTHREAD_LOCK_DIR to a directory every session can write." >&2
+    exit 73
+  fi
+  waited=$(( $(date +%s) - start ))
+  if [ "$waited" -ge "$timeout" ]; then
+    echo "steelthread-lock: gave up after ${waited}s; lock held by pid ${seen:-unknown}. If that is not a steelthread-lock run, remove $lock" >&2
+    exit 75
+  fi
+  if [ "$announced" -eq 0 ]; then
+    echo "steelthread-lock: waiting for pid ${seen:-unknown} to finish its heavy command" >&2
+    announced=1
+  fi
+  sleep 1
+done
+
+echo $$ > "$lock/pid"
+release() { [ "$(owner)" = "$$" ] && remove_lock; }
+trap release EXIT
+
+# Run the command as a child so a signal reaches this wrapper at once, is passed on
+# to the command and everything it started, and the lock is released only after the
+# command has stopped.
+child=""
+signalled=0
+pass_on() { signalled=$1; [ -n "$child" ] && kill_tree "$child"; }
+trap 'pass_on 143' TERM HUP
+trap 'pass_on 130' INT
+
+STEELTHREAD_LOCK_HELD=$$ "$@" <&0 &
+child=$!
+echo "$child" > "$lock/child"
+
+wait "$child"
+status=$?
+while kill -0 "$child" 2>/dev/null; do
+  wait "$child"
+  status=$?
+done
+[ "$signalled" -ne 0 ] && status=$signalled
+exit "$status"

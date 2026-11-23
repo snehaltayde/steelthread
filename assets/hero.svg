@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 440" width="1280" height="440" role="img" aria-labelledby="t d">
+  <title id="t">Steelthread</title>
+  <desc id="d">Six layers of an application stacked from schema at the bottom to tests at the top. Each feature slice is one thread running through all six layers. Two slices are finished and verified, a third is being built, and the next has not started.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1016"/>
+      <stop offset="1" stop-color="#121c27"/>
+    </linearGradient>
+    <linearGradient id="steel" gradientUnits="userSpaceOnUse" x1="0" y1="350" x2="0" y2="90">
+      <stop offset="0" stop-color="#7fb8e6"/>
+      <stop offset="1" stop-color="#eaf5ff"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#a9d2f3"/>
+    </linearGradient>
+    <filter id="glow" filterUnits="userSpaceOnUse" x="880" y="60" width="240" height="320">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+      .layer { fill: #16212d; stroke: #24364a; stroke-width: 1; }
+      .lname { fill: #8fa3b8; font-size: 14px; }
+      .cap { fill: #8fa3b8; font-size: 13px; }
+      .thread { stroke: url(#steel); stroke-width: 3; stroke-linecap: round; fill: none; }
+      .node { fill: #eaf5ff; }
+      .draw { stroke: #f2b441; stroke-width: 3; stroke-linecap: round; fill: none; stroke-dasharray: 260; stroke-dashoffset: 104; animation: draw 7s ease-in-out infinite; }
+      .next { stroke: #3b5068; stroke-width: 2; stroke-dasharray: 4 8; stroke-linecap: round; fill: none; }
+      .n1, .n2, .n3, .n4, .n5, .n6 { fill: #f2b441; animation: 7s ease-in-out infinite; }
+      .n5, .n6 { opacity: 0; }
+      .n1 { animation-name: n1; } .n2 { animation-name: n2; } .n3 { animation-name: n3; }
+      .n4 { animation-name: n4; } .n5 { animation-name: n5; } .n6 { animation-name: n6; }
+      @keyframes draw { 0% { stroke-dashoffset: 260; } 70%, 100% { stroke-dashoffset: 0; } }
+      @keyframes n1 { 0%, 1% { opacity: 0; } 4%, 100% { opacity: 1; } }
+      @keyframes n2 { 0%, 13% { opacity: 0; } 17%, 100% { opacity: 1; } }
+      @keyframes n3 { 0%, 27% { opacity: 0; } 31%, 100% { opacity: 1; } }
+      @keyframes n4 { 0%, 41% { opacity: 0; } 45%, 100% { opacity: 1; } }
+      @keyframes n5 { 0%, 55% { opacity: 0; } 59%, 100% { opacity: 1; } }
+      @keyframes n6 { 0%, 66% { opacity: 0; } 70%, 100% { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) {
+        .draw, .n1, .n2, .n3, .n4, .n5, .n6 { animation: none; }
+      }
+    </style>
+  </defs>
+
+  <rect x="1" y="1" width="1278" height="438" rx="18" fill="url(#bg)" stroke="#24364a" stroke-width="2"/>
+
+  <!-- Left: name and promise -->
+  <text x="72" y="128" class="mono" font-size="14" letter-spacing="3" fill="#7fb8e6">A CLAUDE CODE PLUGIN</text>
+  <text x="68" y="212" class="sans" font-size="84" font-weight="800" letter-spacing="-2.5" fill="url(#word)">Steelthread</text>
+  <text x="72" y="262" class="sans" font-size="25" fill="#c9d6e2">Build software one verified slice at a time.</text>
+  <rect x="72" y="298" width="424" height="46" rx="9" fill="#0a0f14" stroke="#24364a"/>
+  <text x="92" y="327" class="mono" font-size="15" fill="#8fa3b8"><tspan fill="#7fb8e6">/plugin install</tspan> steelthread@steelthread</text>
+
+  <!-- Right: six layers, bottom to top in build order -->
+  <g>
+    <rect class="layer" x="656" y="68"  width="552" height="44" rx="8"/>
+    <rect class="layer" x="656" y="120" width="552" height="44" rx="8"/>
+    <rect class="layer" x="656" y="172" width="552" height="44" rx="8"/>
+    <rect class="layer" x="656" y="224" width="552" height="44" rx="8"/>
+    <rect class="layer" x="656" y="276" width="552" height="44" rx="8"/>
+    <rect class="layer" x="656" y="328" width="552" height="44" rx="8"/>
+    <g class="mono lname">
+      <text x="676" y="95">tests</text>
+      <text x="676" y="147">UI</text>
+      <text x="676" y="199">reads and writes</text>
+      <text x="676" y="251">permission checks</text>
+      <text x="676" y="303">migration</text>
+      <text x="676" y="355">schema</text>
+    </g>
+  </g>
+
+  <!-- Slice 1 and 2: finished and verified -->
+  <g filter="url(#glow)">
+    <path class="thread" d="M912 350 L912 90"/>
+    <path class="thread" d="M992 350 L992 90"/>
+  </g>
+  <g class="node">
+    <circle cx="912" cy="350" r="5"/><circle cx="912" cy="298" r="5"/><circle cx="912" cy="246" r="5"/>
+    <circle cx="912" cy="194" r="5"/><circle cx="912" cy="142" r="5"/><circle cx="912" cy="90" r="5"/>
+    <circle cx="992" cy="350" r="5"/><circle cx="992" cy="298" r="5"/><circle cx="992" cy="246" r="5"/>
+    <circle cx="992" cy="194" r="5"/><circle cx="992" cy="142" r="5"/><circle cx="992" cy="90" r="5"/>
+  </g>
+  <g>
+    <circle cx="912" cy="42" r="11" fill="#2ea043"/>
+    <path d="M906.5 42.5 l3.8 3.8 l7 -7.6" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="992" cy="42" r="11" fill="#2ea043"/>
+    <path d="M986.5 42.5 l3.8 3.8 l7 -7.6" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Slice 3: being built, bottom to top -->
+  <path class="draw" d="M1072 350 L1072 90" filter="url(#glow)"/>
+  <circle class="n1" cx="1072" cy="350" r="5"/><circle class="n2" cx="1072" cy="298" r="5"/>
+  <circle class="n3" cx="1072" cy="246" r="5"/><circle class="n4" cx="1072" cy="194" r="5"/>
+  <circle class="n5" cx="1072" cy="142" r="5"/><circle class="n6" cx="1072" cy="90" r="5"/>
+  <circle cx="1072" cy="42" r="10" fill="none" stroke="#f2b441" stroke-width="2" stroke-dasharray="3 4"/>
+
+  <!-- The next slice has not started -->
+  <path class="next" d="M1152 350 L1152 90"/>
+
+  <g class="mono cap" text-anchor="middle">
+    <text x="912" y="402">slice 1</text>
+    <text x="992" y="402">slice 2</text>
+    <text x="1072" y="402" fill="#f2b441">slice 3</text>
+    <text x="1152" y="402" fill="#5b728c">next</text>
+  </g>
+</svg>

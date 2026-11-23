@@ -1,0 +1,13 @@
+{
+  "name": "steelthread",
+  "version": "0.1.0",
+  "description": "Build software with Claude Code one verified slice at a time: plan, build, design, review, verify. The least-trusted role is tested first, decisions are logged, and nothing is called working unless it was run.",
+  "author": {
+    "name": "Snehal Tayde",
+    "url": "https://github.com/snehaltayde"
+  },
+  "homepage": "https://github.com/snehaltayde/steelthread",
+  "repository": "https://github.com/snehaltayde/steelthread",
+  "license": "MIT",
+  "keywords": ["workflow", "vertical-slice", "subagents", "permissions", "verification", "spec-driven"]
+}
